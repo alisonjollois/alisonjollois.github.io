@@ -126,7 +126,7 @@ m[1,1:3]
 m[1:3,1:3]
 ```
 
-Le type `array` est finalement une extension de `matrix` à plus de 2 dimensions. Nous ne verrons pas ce type pour le moment.
+Le type `array` est une extension de `matrix` à plus de 2 dimensions. Nous ne verrons pas ce type pour le moment.
 
 ```{r}
 class(m)
