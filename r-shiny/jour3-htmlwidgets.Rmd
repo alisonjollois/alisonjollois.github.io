@@ -1,0 +1,512 @@
+---
+title: "Dashboard amélioré"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+---
+
+```{r setupd, include=FALSE}
+knitr::opts_chunk$set(eval = FALSE)
+```
+
+
+## Widgets HTML
+
+L'extension [htmlwidgets](http://www.htmlwidgets.org/) permet d'intégrer des éléments de librairies `JavaScript` dans une application shiny. Nous allons voir ici quatre possibilités :
+
+- Des tableaux améliorés
+- Des graphiques simples de type [**sparkline**](https://fr.wikipedia.org/wiki/Sparkline) dans un tableau
+- Des graphiques (légèrement) interactifs
+- Des cartes
+
+## `DT`
+
+Le package [`DT`](http://rstudio.github.io/DT/) permet de générer des tableaux paramétrables dans une application shiny. Ceux-ci gérent mieux les grandes données et permettent de réaliser des présentations plus intéressantes.
+
+### Exemple simple
+
+Dans ce premier exemple, nous affichons simplement l'ensemble du `data.frame` `txhousing`. On peut ainsi trier les lignes selon chaque colonne. Il est possible aussi de chercher directement une chaîne. Et nous pouvons naviguer dans toute la table assez facilement, même si celle-ci est grande (plus de 8600 lignes ici).
+
+```{r DT-ex1}
+library(shiny)
+library(shinydashboard)
+library(DT)
+
+shinyApp(
+  ui = dashboardPage(
+    dashboardHeader(
+      title = "Test DT"
+    ),
+    dashboardSidebar(),
+    dashboardBody(
+      dataTableOutput("tableau")
+    ),
+    title = "Test DT",
+    skin = "yellow"
+  ),
+  server = function(input, output) {
+    output$tableau <- renderDataTable({
+      datatable(txhousing)
+    })
+  }
+)
+```
+
+### Quelques effets de styles
+
+Nous avons appliqué ici quelques effets de styles (que  vous pouvez voir en exécutant le code ci-dessous) :
+
+- Suppression des noms de lignes (avec `rownames = FALSE`)
+- Renommage de certaines colonnes (avec `colnames = ...`)
+- Ajout d'un titre (avec `caption = ...`)
+- Mise en place d'un filtre par colonne (avec `filter = 'top'`)
+
+```{r DT-ex2}
+library(shiny)
+library(shinydashboard)
+library(DT)
+
+shinyApp(
+  ui = dashboardPage(
+    dashboardHeader(
+      title = "Test DT"
+    ),
+    dashboardSidebar(),
+    dashboardBody(
+      dataTableOutput("tableau")
+    ),
+    title = "Test DT",
+    skin = "yellow"
+  ),
+  server = function(input, output) {
+    output$tableau <- renderDataTable({
+      datatable(txhousing, 
+                rownames = FALSE, 
+                colnames = c('Ville' = 'city', 
+                             'Année' = 'year', 
+                             'Mois' = 'month'),
+                caption = "Données concernant les ventes immobilières au Texas - 2001-2015",
+                filter = 'top')
+    })
+  }
+)
+```
+
+### Formatage et couleurs
+
+Pour aller plus loin dans le formatage, il est possible d'utiliser des fonctions prédéfinies pour définir un format spécifique pour une ou plusieurs colonnes, définir des couleurs de fonds et de polices, ... visibles en exécutant le code ci-dessous
+
+- Formatage monétaire pour la colonne `volume` (avec `formatCurrency()`)
+- Formatage de la date (avec `formatDate()` - notez l'utilisation de la fonction `decimal_date()` du package `lubridate`)
+- Formatage d'une colonne (avec `formatStyle()`)
+- Ajout d'une barre en fonction de la valeur dans la colonne `median` (toujours avec `formatStyle()`)
+
+```{r DT-ex3}
+library(shiny)
+library(shinydashboard)
+library(DT)
+library(lubridate)
+
+shinyApp(
+  ui = dashboardPage(
+    dashboardHeader(
+      title = "Test DT"
+    ),
+    dashboardSidebar(),
+    dashboardBody(
+      dataTableOutput("tableau")
+    ),
+    title = "Test DT",
+    skin = "yellow"
+  ),
+  server = function(input, output) {
+    output$tableau <- renderDataTable({
+      datatable(txhousing %>% mutate(date = date_decimal(date))) %>%
+        formatCurrency("volume") %>%
+        formatDate("date", "toLocaleDateString") %>%
+        formatStyle(
+          'city',  
+          color = 'white', 
+          backgroundColor = 'slategrey', 
+          fontWeight = 'bold') %>%
+        formatStyle(
+          'median',
+          background = styleColorBar(range(txhousing$median, na.rm = TRUE), 'lightblue'),
+          backgroundSize = '98% 88%',
+          backgroundRepeat = 'no-repeat',
+          backgroundPosition = 'center'
+        )
+    })
+  }
+)
+```
+
+### Exportation des données
+
+Il existe une extension permettant d'ajouter automatiquement des boutons, pour exporter les données sous différents formats (`csv`, `excel` et `pdf`), pour copier les données (permettant des les coller dans un tableur) ou même d'imprimer.
+
+```{r DT-ex4}
+library(shiny)
+library(shinydashboard)
+library(DT)
+
+shinyApp(
+  ui = dashboardPage(
+    dashboardHeader(
+      title = "Test DT"
+    ),
+    dashboardSidebar(),
+    dashboardBody(
+      dataTableOutput("tableau")
+    ),
+    title = "Test DT",
+    skin = "yellow"
+  ),
+  server = function(input, output) {
+    output$tableau <- renderDataTable({
+      datatable(
+        txhousing, 
+        extensions = 'Buttons', 
+        options = list(
+          dom = 'Bfrtip',
+          buttons = c('copy', 'csv', 'excel', 'pdf', 'print')
+        )
+      )
+    })
+  }
+)
+```
+
+### Scrolling amélioré
+
+Notre table étant un peu large, certaines colonnes ne sont pas tout de suite visible et le déplacement n'est pas toujours aisé. Il est possible de laisser la possibilité de faire un scrolling donc, tout en laissant des colonnes fixes (cf ci-dessous).
+
+```{r DT-ex5}
+library(shiny)
+library(shinydashboard)
+library(DT)
+
+shinyApp(
+  ui = dashboardPage(
+    dashboardHeader(
+      title = "Test DT"
+    ),
+    dashboardSidebar(),
+    dashboardBody(
+      dataTableOutput("tableau")
+    ),
+    title = "Test DT",
+    skin = "yellow"
+  ),
+  server = function(input, output) {
+    output$tableau <- renderDataTable({
+      datatable(
+        txhousing, 
+        rownames = FALSE,
+        extensions = 'FixedColumns',
+        options = list(
+          dom = 't',
+          scrollX = TRUE,
+          fixedColumns = list(leftColumns = 1, rightColumns = 1)
+        )
+      )
+    })
+  }
+)
+```
+
+### Sélection de lignes
+
+Pour aller plus loin, il est aussi possible de sélectionner des lignes et d'utiliser cette sélection dans un graphique ou une autre table. Ci-dessous, après avoir fait un résumé de la table, par ville, nous l'affichons, ainsi qu'un graphique. Et lorsque nous naviguons dans la table, les points des villes affichées changent de couleur. De même, lorsque nous sélectionnons des villes, celles-ci voient la taille de leur point grossir.
+
+```{r}
+library(shiny)
+library(shinydashboard)
+library(DT)
+
+resume = txhousing %>% 
+  group_by(city) %>% 
+  summarise(volume = sum(volume, na.rm = T), 
+            median = median(median, na.rm = T))
+
+shinyApp(
+  ui = dashboardPage(
+    dashboardHeader(
+      title = "Test DT"
+    ),
+    dashboardSidebar(),
+    dashboardBody(
+      dataTableOutput("tableau"),
+      plotOutput("graphique")
+    ),
+    title = "Test DT",
+    skin = "yellow"
+  ),
+  server = function(input, output) {
+    output$tableau <- renderDataTable({
+      datatable(resume)
+    })
+    
+    output$graphique <- renderPlot({
+      df = resume %>%
+        mutate(affiche = ifelse(row_number() %in% input$tableau_rows_current, "oui", "non"),
+               selection = ifelse(row_number() %in% input$tableau_rows_selected, "oui", "non"))
+      ggplot(df, aes(median, volume, label = city, color = affiche, size = selection)) +
+        geom_point() +
+        theme_classic()
+    })
+  }
+)
+```
+
+## `sparkline`
+
+Les graphiques [**sparkline**](https://fr.wikipedia.org/wiki/Sparkline) ont été introduit par [Tufte](https://www.edwardtufte.com/tufte/), et ont pour but d'introduire dans du texte ou un tableau des petits graphiques permettant de synthétiser une information. Nous allons l'utiliser ici pour afficher, pour chaque ville (suite au résumé fait par ville), la distribution du prix médian via une boîte à moustaches et l'évolution des ventes depuis 2000. Ici, nous avons utiliser le package [`formattable`](https://cran.r-project.org/web/packages/formattable/index.html) en plus. Il est possible d'utiliser le package `DT`, le code étant plus complexe.
+
+```{r sparkline}
+library(shiny)
+library(shinydashboard)
+library(sparkline)
+library(formattable)
+
+resume = txhousing %>%
+  group_by(city) %>%
+  summarise(Volume = sum(volume, na.rm = T), 
+            Median = median(median, na.rm = T),
+            "Median price" = list(median), 
+            "Volume evolution" = list(volume))
+
+boxCell <- function(x){
+  lapply(x, function(xx){
+    as.character(as.tags(
+      sparkline(xx, type="box",
+                chartRangeMin = min(unlist(xx)),
+                chartRangeMax = max(unlist(xx)))
+    ))
+  })
+}
+
+lineCell <- function(x){
+  lapply(x, function(xx){
+    as.character(as.tags(
+      sparkline(xx, type="line",
+                chartRangeMin = min(unlist(xx)),
+                chartRangeMax = max(unlist(xx)))
+    ))
+  })
+}
+
+shinyApp(
+  ui = dashboardPage(
+    dashboardHeader(
+      title = "Test sparkline"
+    ),
+    dashboardSidebar(),
+    dashboardBody(
+      uiOutput("tableau")
+    ),
+    title = "Test sparkline",
+    skin = "yellow"
+  ),
+  server = function(input, output) {
+    output$tableau <- renderUI({
+      resume %>%
+        formattable(
+          formatters = list(
+            area(col = 4) ~ boxCell,
+            area(col = 5) ~ lineCell
+          )
+        ) %>%
+        formattable::as.htmlwidget() %>%
+        tagList() %>%
+        attachDependencies(
+          htmlwidgets:::widget_dependencies("sparkline","sparkline")
+        ) %>%
+        browsable()
+    })
+  }
+)
+```
+
+
+## `plotly`
+
+Le package [`plotly`](https://plot.ly/r/) permet de générer des graphiques interactifs à partir de graphiques faits avec `ggplot2`, grâce à la fonction `ggplotly()`. Il existe aussi la fonction `plot_ly()` permettant de les créer directement, sans passer par `ggplot()`. Nous reprenons ici le graphique pour toutes les villes, mis au format `plotly`. 
+
+```{r plotly-ggplot}
+library(shiny)
+library(shinydashboard)
+library(ggplot2)
+library(plotly)
+
+shinyApp(
+  ui = dashboardPage(
+    dashboardHeader(
+      title = "Test plotly"
+    ),
+    dashboardSidebar(),
+    dashboardBody(
+      plotOutput("graphique")
+    ),
+    title = "Test plotly",
+    skin = "yellow"
+  ),
+  server = function(input, output) {
+    output$graphique <- renderPlot({
+      resume = txhousing %>%
+        group_by(date) %>%
+        summarise(volume =  sum(volume, na.rm = TRUE))
+      g = ggplot(resume, aes(date, volume)) +
+        geom_line() +
+        theme_minimal()
+      ggplotly(g)
+    })
+  }
+)
+```
+
+Il est possible d'aller (beaucoup) plus loin, mais ce n'est pas le sujet de cette séance.
+
+## `leaflet`
+
+### Carte simple
+
+Enfin, le package [`leaflet`](http://rstudio.github.io/leaflet/) permet de générer des cartes, et d'ajouter des informations dessus. Ci-dessous, nous voyons un exemple simple permettant d'afficher la carte centrée sur le Texas.
+
+```{r leaflet-ex1}
+library(shiny)
+library(shinydashboard)
+library(leaflet)
+
+map = leaflet() %>%
+  addTiles() %>%
+  setView(lng = -101, lat = 30, zoom = 5)
+
+shinyApp(
+  ui = dashboardPage(
+    dashboardHeader(
+      title = "Test plotly"
+    ),
+    dashboardSidebar(),
+    dashboardBody(
+      leafletOutput("carte")
+    ),
+    title = "Test plotly",
+    skin = "yellow"
+  ),
+  server = function(input, output) {
+    output$carte <- renderLeaflet({
+      map
+    })
+  }
+)
+```
+
+### Carte à partir de données `GeoJSON`
+
+Le format  [`GeoJSON`](http://geojson.org/) commence à devenir un standard pour définir des éléments géographiques, telles que des zones, afin de les utiliser dans des logiciels pour réaliser des cartes dites [**choroplèthes**](https://fr.wikipedia.org/wiki/Carte_choropl%C3%A8the). Nous avons à notre disposition sur cette [page](http://catalog.opendata.city/dataset/texas-cities-polygon/resource/15f90106-372f-4128-890b-e31351152e23) un fichier de ce type regroupant toutes villes du Texas (voici le [fichier en question](htmlwidgets/texas-city.geojson). Notre code devient le suivant pour afficher ces différentes zones.
+
+```{r leaflet-ex2}
+library(shiny)
+library(shinydashboard)
+library(leaflet)
+library(geojsonio)
+
+txgeo = geojson_read("texas-city.geojson", what = "sp")
+
+map = leaflet(txgeo) %>%
+  addTiles() %>%
+  addPolygons(fillColor = "gray", fillOpacity = .5, color = "red", weight = 1)
+
+shinyApp(
+  ui = dashboardPage(
+    dashboardHeader(
+      title = "Test plotly"
+    ),
+    dashboardSidebar(),
+    dashboardBody(
+      leafletOutput("carte")
+    ),
+    title = "Test plotly",
+    skin = "yellow"
+  ),
+  server = function(input, output) {
+    output$carte <- renderLeaflet({
+      map
+    })
+  }
+)
+```
+
+
+### Couleurs en fonction d'une variable
+
+Enfin, à partir du fichier `GeoJSON` d'une part, et des données `txhousing` d'autre part, il est possible de colorer chaque ville selon la somme des volumes de ventes sur l'année. Pour cela, dans le code qui suit, nous devons faire une jointure entre les deux (en gardant l'ordre initial des données géographiques, d'où l'utilisation de `inner_join()`). On ajoute aussi une pop-up incluant le nom de la ville et la somme des volumes.
+
+```{r leaflet-ex3}
+library(shiny)
+library(shinydashboard)
+library(leaflet)
+library(geojsonio)
+
+resume = txhousing %>%
+  group_by(city) %>%
+  summarise(volume = sum(volume, na.rm = TRUE))
+
+txgeo = geojson_read("texas-city.geojson", what = "sp")
+txgeo = subset(txgeo, sub(", TX", "", name) %in% unique(txhousing$city))
+
+txgeo@data$city = sub(", TX", "", txgeo@data$name)
+txgeo@data = dplyr::left_join(txgeo@data, resume, all.x = TRUE)
+
+pal = colorNumeric("viridis", NULL)
+map = leaflet(txgeo) %>%
+  addTiles() %>%
+  addPolygons(fillColor = ~pal(volume), 
+              fillOpacity = .5, 
+              color = "red", weight = 1,
+              label = ~paste0(city, ": ", formatC(volume, big.mark = ","))) %>%
+  addLegend(pal = pal, values = ~volume, opacity = 1.0,
+            labFormat = labelFormat(transform = function(x) round(x)))
+
+shinyApp(
+  ui = dashboardPage(
+    dashboardHeader(
+      title = "Test plotly"
+    ),
+    dashboardSidebar(),
+    dashboardBody(
+      leafletOutput("carte")
+    ),
+    title = "Test plotly",
+    skin = "yellow"
+  ),
+  server = function(input, output) {
+    output$carte <- renderLeaflet({
+      map
+    })
+  }
+)
+```
+
+
+## A faire
+
+Ajouter, à l'application réalisée sur les données `txhousing` les éléments suivants :
+
+- un onglet avec 
+    - une table résumant les villes
+        - Nom de la ville
+        - Volume total des ventes
+        - Prix médian de vente
+        - Pourcentage d'évolution depuis 2000
+        - d'autres informations à réfléchir
+    - un graphique interactif 
+        - montrant l'évolution sur la période des villes sélectionnées dans le tableau ci-dessus
+        - avec l'évolution globale moyenne en référence
+    - une carte montrant les villes sélectionnées
+- un onglet avec
+    - une carte générale, affichant une couleur par rapport à l'évolution de chaque ville et en améliorant la pop-up qui s'affiche afin de lui mettre plus d'informations
+
+Le tout en réfléchissant comment optimiser son code pour minimiser le temps des différents calculs (à l'aide de fichier `.RData` entre autres).
