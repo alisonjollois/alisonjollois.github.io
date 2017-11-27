@@ -13,5 +13,5 @@ Cours LP Data-Mining - **R et Shiny**
         - La progression est en fait le pourcentage de la valeur de 2015 par rapport à celle de 2000. Modifier le code pour avoir le delta entre cette valeur et 100%
             - par exemple : 169% deviendra +69%, et 85% deviendra -15%
             - modifier les couleurs pour avertir du problème (vert si > 0 et orange sinon)
-    - Correction : [app.R](Dashboard/app.R)
+    - Correction : [app.R](r-shiny/dashboard/app.R)
 - [Journée 3 - *Widgets HTML*](r-shiny/jour3-htmlwidgets.html)
