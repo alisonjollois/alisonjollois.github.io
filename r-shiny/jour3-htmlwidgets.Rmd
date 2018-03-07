@@ -10,6 +10,7 @@ output:
 knitr::opts_chunk$set(eval = FALSE)
 ```
 
+Pour ce TP, nous allons utiliser une version web de RStudio, accessible à cette adresse : <http://193.51.82.104:2243/>. Vous pourrez vous y connecter avec le login donné en cours.
 
 ## Widgets HTML
 
@@ -32,6 +33,7 @@ Dans ce premier exemple, nous affichons simplement l'ensemble du `data.frame` `t
 library(shiny)
 library(shinydashboard)
 library(DT)
+library(ggplot2)
 
 shinyApp(
   ui = dashboardPage(
@@ -63,34 +65,13 @@ Nous avons appliqué ici quelques effets de styles (que  vous pouvez voir en ex�
 - Mise en place d'un filtre par colonne (avec `filter = 'top'`)
 
 ```{r DT-ex2}
-library(shiny)
-library(shinydashboard)
-library(DT)
-
-shinyApp(
-  ui = dashboardPage(
-    dashboardHeader(
-      title = "Test DT"
-    ),
-    dashboardSidebar(),
-    dashboardBody(
-      dataTableOutput("tableau")
-    ),
-    title = "Test DT",
-    skin = "yellow"
-  ),
-  server = function(input, output) {
-    output$tableau <- renderDataTable({
-      datatable(txhousing, 
-                rownames = FALSE, 
-                colnames = c('Ville' = 'city', 
-                             'Année' = 'year', 
-                             'Mois' = 'month'),
-                caption = "Données concernant les ventes immobilières au Texas - 2001-2015",
-                filter = 'top')
-    })
-  }
-)
+datatable(txhousing, 
+          rownames = FALSE, 
+          colnames = c('Ville' = 'city', 
+                       'Année' = 'year', 
+                       'Mois' = 'month'),
+          caption = "Données concernant les ventes immobilières au Texas - 2001-2015",
+          filter = 'top')
 ```
 
 ### Formatage et couleurs
@@ -98,48 +79,32 @@ shinyApp(
 Pour aller plus loin dans le formatage, il est possible d'utiliser des fonctions prédéfinies pour définir un format spécifique pour une ou plusieurs colonnes, définir des couleurs de fonds et de polices, ... visibles en exécutant le code ci-dessous
 
 - Formatage monétaire pour la colonne `volume` (avec `formatCurrency()`)
-- Formatage de la date (avec `formatDate()` - notez l'utilisation de la fonction `decimal_date()` du package `lubridate`)
+- Formatage de la date (avec `formatDate()` 
+    - notez l'utilisation de la fonction `date_decimal()` du package `lubridate`)
 - Formatage d'une colonne (avec `formatStyle()`)
-- Ajout d'une barre en fonction de la valeur dans la colonne `median` (toujours avec `formatStyle()`)
+- Ajout d'une barre en fonction de la valeur dans la colonne `median` (toujours avec `formatStyle()` et la fonction `styleColorBar()`)
 
 ```{r DT-ex3}
-library(shiny)
-library(shinydashboard)
-library(DT)
 library(lubridate)
+library(dplyr)
 
-shinyApp(
-  ui = dashboardPage(
-    dashboardHeader(
-      title = "Test DT"
-    ),
-    dashboardSidebar(),
-    dashboardBody(
-      dataTableOutput("tableau")
-    ),
-    title = "Test DT",
-    skin = "yellow"
-  ),
-  server = function(input, output) {
-    output$tableau <- renderDataTable({
-      datatable(txhousing %>% mutate(date = date_decimal(date))) %>%
-        formatCurrency("volume") %>%
-        formatDate("date", "toLocaleDateString") %>%
-        formatStyle(
-          'city',  
-          color = 'white', 
-          backgroundColor = 'slategrey', 
-          fontWeight = 'bold') %>%
-        formatStyle(
-          'median',
-          background = styleColorBar(range(txhousing$median, na.rm = TRUE), 'lightblue'),
-          backgroundSize = '98% 88%',
-          backgroundRepeat = 'no-repeat',
-          backgroundPosition = 'center'
-        )
-    })
-  }
-)
+# ...
+
+datatable(txhousing %>% mutate(date = date_decimal(date))) %>%
+  formatCurrency("volume") %>%
+  formatDate("date", "toLocaleDateString") %>%
+  formatStyle(
+    'city',  
+    color = 'white', 
+    backgroundColor = 'slategrey', 
+    fontWeight = 'bold') %>%
+  formatStyle(
+    'median',
+    background = styleColorBar(range(txhousing$median, na.rm = TRUE), 'lightblue'),
+    backgroundSize = '98% 88%',
+    backgroundRepeat = 'no-repeat',
+    backgroundPosition = 'center'
+  )
 ```
 
 ### Exportation des données
@@ -147,34 +112,13 @@ shinyApp(
 Il existe une extension permettant d'ajouter automatiquement des boutons, pour exporter les données sous différents formats (`csv`, `excel` et `pdf`), pour copier les données (permettant des les coller dans un tableur) ou même d'imprimer.
 
 ```{r DT-ex4}
-library(shiny)
-library(shinydashboard)
-library(DT)
-
-shinyApp(
-  ui = dashboardPage(
-    dashboardHeader(
-      title = "Test DT"
-    ),
-    dashboardSidebar(),
-    dashboardBody(
-      dataTableOutput("tableau")
-    ),
-    title = "Test DT",
-    skin = "yellow"
-  ),
-  server = function(input, output) {
-    output$tableau <- renderDataTable({
-      datatable(
-        txhousing, 
-        extensions = 'Buttons', 
-        options = list(
-          dom = 'Bfrtip',
-          buttons = c('copy', 'csv', 'excel', 'pdf', 'print')
-        )
-      )
-    })
-  }
+datatable(
+  txhousing, 
+  extensions = 'Buttons', 
+  options = list(
+    dom = 'Bfrtip',
+    buttons = c('copy', 'csv', 'excel', 'pdf', 'print')
+  )
 )
 ```
 
@@ -183,47 +127,30 @@ shinyApp(
 Notre table étant un peu large, certaines colonnes ne sont pas tout de suite visible et le déplacement n'est pas toujours aisé. Il est possible de laisser la possibilité de faire un scrolling donc, tout en laissant des colonnes fixes (cf ci-dessous).
 
 ```{r DT-ex5}
-library(shiny)
-library(shinydashboard)
-library(DT)
-
-shinyApp(
-  ui = dashboardPage(
-    dashboardHeader(
-      title = "Test DT"
-    ),
-    dashboardSidebar(),
-    dashboardBody(
-      dataTableOutput("tableau")
-    ),
-    title = "Test DT",
-    skin = "yellow"
-  ),
-  server = function(input, output) {
-    output$tableau <- renderDataTable({
-      datatable(
-        txhousing, 
-        rownames = FALSE,
-        extensions = 'FixedColumns',
-        options = list(
-          dom = 't',
-          scrollX = TRUE,
-          fixedColumns = list(leftColumns = 1, rightColumns = 1)
-        )
-      )
-    })
-  }
+datatable(
+  txhousing, 
+  rownames = FALSE,
+  extensions = 'FixedColumns',
+  options = list(
+    dom = 't',
+    scrollX = TRUE,
+    fixedColumns = list(leftColumns = 1, rightColumns = 1)
+  )
 )
 ```
 
 ### Sélection de lignes
 
-Pour aller plus loin, il est aussi possible de sélectionner des lignes et d'utiliser cette sélection dans un graphique ou une autre table. Ci-dessous, après avoir fait un résumé de la table, par ville, nous l'affichons, ainsi qu'un graphique. Et lorsque nous naviguons dans la table, les points des villes affichées changent de couleur. De même, lorsque nous sélectionnons des villes, celles-ci voient la taille de leur point grossir.
+Pour aller plus loin, il est aussi possible de sélectionner des lignes et d'utiliser cette sélection dans un graphique ou une autre table, grâce aux variables `tableau_rows_current` et  `tableau_rows_selected` présentes dans `input`. 
+
+Ci-dessous, après avoir fait un résumé de la table, par ville, nous l'affichons, ainsi qu'un graphique. Et lorsque nous naviguons dans la table, les points des villes affichées changent de couleur. De même, lorsque nous sélectionnons des villes, celles-ci voient la taille de leur point grossir.
 
 ```{r}
 library(shiny)
 library(shinydashboard)
 library(DT)
+library(dplyr)
+library(ggplot2)
 
 resume = txhousing %>% 
   group_by(city) %>% 
@@ -269,6 +196,9 @@ library(shiny)
 library(shinydashboard)
 library(sparkline)
 library(formattable)
+library(dplyr)
+library(ggplot2)
+library(htmltools)
 
 resume = txhousing %>%
   group_by(city) %>%
@@ -386,13 +316,13 @@ map = leaflet() %>%
 shinyApp(
   ui = dashboardPage(
     dashboardHeader(
-      title = "Test plotly"
+      title = "Test leaflet"
     ),
     dashboardSidebar(),
     dashboardBody(
       leafletOutput("carte")
     ),
-    title = "Test plotly",
+    title = "Test leaflet",
     skin = "yellow"
   ),
   server = function(input, output) {
@@ -405,7 +335,7 @@ shinyApp(
 
 ### Carte à partir de données `GeoJSON`
 
-Le format  [`GeoJSON`](http://geojson.org/) commence à devenir un standard pour définir des éléments géographiques, telles que des zones, afin de les utiliser dans des logiciels pour réaliser des cartes dites [**choroplèthes**](https://fr.wikipedia.org/wiki/Carte_choropl%C3%A8the). Nous avons à notre disposition sur cette [page](http://catalog.opendata.city/dataset/texas-cities-polygon/resource/15f90106-372f-4128-890b-e31351152e23) un fichier de ce type regroupant toutes villes du Texas (voici le [fichier en question](htmlwidgets/texas-city.geojson). Notre code devient le suivant pour afficher ces différentes zones.
+Le format  [`GeoJSON`](http://geojson.org/) commence à devenir un standard pour définir des éléments géographiques, telles que des zones, afin de les utiliser dans des logiciels pour réaliser des cartes dites [**choroplèthes**](https://fr.wikipedia.org/wiki/Carte_choropl%C3%A8the). Nous avons à notre disposition sur cette [page](http://catalog.opendata.city/dataset/texas-cities-polygon/resource/15f90106-372f-4128-890b-e31351152e23) un fichier de ce type regroupant toutes villes du Texas (voici le [fichier en question](htmlwidgets/texas-city.geojson)). Notre code devient le suivant pour afficher ces différentes zones.
 
 ```{r leaflet-ex2}
 library(shiny)
@@ -422,13 +352,13 @@ map = leaflet(txgeo) %>%
 shinyApp(
   ui = dashboardPage(
     dashboardHeader(
-      title = "Test plotly"
+      title = "Test leaflet"
     ),
     dashboardSidebar(),
     dashboardBody(
       leafletOutput("carte")
     ),
-    title = "Test plotly",
+    title = "Test leaflet",
     skin = "yellow"
   ),
   server = function(input, output) {
@@ -473,13 +403,13 @@ map = leaflet(txgeo) %>%
 shinyApp(
   ui = dashboardPage(
     dashboardHeader(
-      title = "Test plotly"
+      title = "Test leaflet"
     ),
     dashboardSidebar(),
     dashboardBody(
       leafletOutput("carte")
     ),
-    title = "Test plotly",
+    title = "Test leaflet",
     skin = "yellow"
   ),
   server = function(input, output) {
@@ -493,7 +423,7 @@ shinyApp(
 
 ## A faire
 
-Ajouter, à l'application réalisée sur les données `txhousing` les éléments suivants :
+Ajouter à l'application réalisée sur les données `txhousing` dans le précédent TP les éléments suivants :
 
 - un onglet avec 
     - une table résumant les villes
@@ -501,7 +431,7 @@ Ajouter, à l'application réalisée sur les données `txhousing` les éléments
         - Volume total des ventes
         - Prix médian de vente
         - Pourcentage d'évolution depuis 2000
-        - d'autres informations à réfléchir
+        - d'autres informations à réfléchir (comme des graphiques par exemple)
     - un graphique interactif 
         - montrant l'évolution sur la période des villes sélectionnées dans le tableau ci-dessus
         - avec l'évolution globale moyenne en référence
